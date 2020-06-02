@@ -13,18 +13,14 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-//#include "C:\Users\eduar\Documents\lib\glm\glm\glm.hpp"
-//#include "C:\Users\eduar\Documents\lib\glm\glm\gtc\noise.hpp"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include <stdio.h>
 #include <math.h>
-//#include "C:/Users/eduar/Documents/nubes/NoiseGenerator/Dependencies/Simple OpenGL Image Library/src/SOIL.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-
 
 
 using namespace std;
@@ -98,6 +94,9 @@ __device__ float magnitudeArr3(float* a) {
 }
 
 __device__ float noise(float* position) {
+	// this hash function is taken from shadertoy and the same as:
+	// https://github.com/sebh/TileableVolumeNoise
+
 	float rounded[3];
 	float fraction[3];
 	float two[3] = { 2.0, 2.0, 2.0 };
@@ -167,25 +166,22 @@ __device__ float worley(float* position, int cells) {
 }
 
 __global__ void pixelNoise(unsigned char * image,  const int width, const int height, const int depth, const int channels, int cells) {
-	// y * s_x * s_z + z * s_x + x
-	//int i = 3* (blockIdx.y * gridDim.x * gridDim.y + blockIdx.x * blockDim.x + threadIdx.x);
-	//float position[3] = { threadIdx.x / (float) blockDim.x, blockIdx.y / (float) blockDim.y, blockIdx.x / (float) blockDim.y};
 	int i =  blockIdx.x * blockDim.x + threadIdx.x;
 	if (i > width * height * depth)
 		return;
-	//float position[3] = { threadIdx.x / (float) blockDim.x, blockIdx.x / (float) gridDim.x};
 	// Get row and col of the pixel
 	// Integer division here
 	int row = i / (width * depth);
 	int col = i % (width * depth);
-	// Get Position = {x, y, z} and normalize it
+	// Get Position = {x, y, z} and scale it from 0 to 1
 	float position[3] = {
 		col % width / (float) width,
 		row / (float) height,
 		col / width / (float) depth
 	};
+	// every pixel has one byte for each channel
 	i *= channels;
-	// worley fractal brownian motion
+	// build final fbm with 3 worley octaves
 	float noise = (1 - worley(position, cells)) * 0.625 
 		+ (1 - worley(position, cells * 2)) * 0.25 
 		+ (1 - worley(position, cells * 4)) * 0.125;
@@ -217,7 +213,6 @@ cudaError_t fillImage(unsigned char* image, const int width, const int height, c
 	}
 
 	// Launch a kernel on the GPU with one thread for each element.
-	//dim3 blocks(32, 32);
 	int blocks = (int) ceilf(width * height * depth / 512.0);
 	pixelNoise <<<blocks,512>>> (dev_image, width, height, depth, channels, cells);
 	
@@ -238,8 +233,6 @@ cudaError_t fillImage(unsigned char* image, const int width, const int height, c
 	}
 
 	// Copy output vector from GPU buffer to host memory.
-	//cudaStatus = cudaMemcpy(dev_image, image, width * height * channels * sizeof(unsigned char), cudaMemcpyHostToDevice);
-
 	cudaStatus = cudaMemcpy(image, dev_image, width * height * depth * channels * sizeof(unsigned char), cudaMemcpyDeviceToHost);
 
 	if (cudaStatus != cudaSuccess) {
@@ -257,11 +250,10 @@ int main(int argc, char * argv[])
 {
   
 	int w, h, d, cells, chans;
-	// Should be 32x32x32''
-	printf("%d\n", argc);
+	// Should be 32x32x32
 
 	if(argc != 6){
-		printf("usage: %s width height depth cells filename", argv[0]);
+		printf("usage: %s width height depth cells png_filename", argv[0]);
 	}
 	w = atoi(argv[1]);
 	h = atoi(argv[2]);
