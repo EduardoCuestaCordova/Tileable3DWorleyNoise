@@ -197,7 +197,7 @@ __global__ void pixelNoise(unsigned char * image,  const int width, const int he
 
 }
 
-cudaError_t fillImage(unsigned char* image, const int width, const int height, const int depth, const int channels)
+cudaError_t fillImage(unsigned char* image, const int width, const int height, const int depth, const int channels, const int cells)
 {
 	unsigned char* dev_image = 0;
 	cudaError_t cudaStatus;
@@ -219,7 +219,7 @@ cudaError_t fillImage(unsigned char* image, const int width, const int height, c
 	// Launch a kernel on the GPU with one thread for each element.
 	//dim3 blocks(32, 32);
 	int blocks = (int) ceilf(width * height * depth / 512.0);
-	pixelNoise <<<blocks,512>>> (dev_image, width, height, depth, channels, 10);
+	pixelNoise <<<blocks,512>>> (dev_image, width, height, depth, channels, cells);
 	
 
 	// Check for any errors launching the kernel
@@ -256,20 +256,21 @@ Error:
 int main(int argc, char * argv[])
 {
   
-	int w, h, d, chans;
+	int w, h, d, cells, chans;
 	// Should be 32x32x32''
 	printf("%d\n", argc);
 
-	if(argc != 5){
-		printf("usage: %s width height depth filename", argv[0]);
+	if(argc != 6){
+		printf("usage: %s width height depth cells filename", argv[0]);
 	}
 	w = atoi(argv[1]);
 	h = atoi(argv[2]);
 	d = atoi(argv[3]);
+	cells = atoi(argv[4]);
 	chans = 3;
 	unsigned char* img = (unsigned char *) malloc(sizeof(unsigned char) * w * h * d * chans);
 
-    cudaError_t cudaStatus = fillImage(img, w, h, d, chans);
+    cudaError_t cudaStatus = fillImage(img, w, h, d, chans, cells);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "fillimage failed!");
         return 1;
@@ -283,8 +284,7 @@ int main(int argc, char * argv[])
         return 1;
     }
 
-	stbi_write_png(argv[4], w * d, h, chans, img, w * d * chans);
-	
+	stbi_write_png(argv[5], w * d, h, chans, img, w * d * chans);
 
     return 0;
 }
