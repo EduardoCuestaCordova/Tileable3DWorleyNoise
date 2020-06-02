@@ -253,7 +253,7 @@ int main(int argc, char * argv[])
 	// Should be 32x32x32
 
 	if(argc != 6){
-		printf("usage: %s width height depth cells png_filename", argv[0]);
+		printf("usage: %s width height depth cells png_filename (width and height must be the same for non-scaled results)", argv[0]);
 	}
 	w = atoi(argv[1]);
 	h = atoi(argv[2]);
