@@ -254,20 +254,22 @@ Error:
 }
 
 
-int main()
+int main(int argc, char * argv[])
 {
   
 	int w, h, d, chans;
-	// Should be 32x32x32
-	w = 32;
-	h = 32;
-	d = 32;
+	// Should be 32x32x32''
+	printf("%d\n", argc);
+
+	if(argc != 5){
+		printf("usage: %s width height depth filename", argv[0]);
+	}
+	w = atoi(argv[1]);
+	h = atoi(argv[2]);
+	d = atoi(argv[3]);
 	chans = 3;
 	unsigned char* img = (unsigned char *) malloc(sizeof(unsigned char) * w * h * d * chans);
-	printf("%dx%d, %d channels", w, h, chans);
-	
-    // Add vectors in parallel.
-    //cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize);
+
     cudaError_t cudaStatus = fillImage(img, w, h, d, chans);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "fillimage failed!");
@@ -282,7 +284,7 @@ int main()
         return 1;
     }
 
-	stbi_write_png("sliced3232.png", w * d, h, chans, img, w * d * chans);
+	stbi_write_png(argv[4], w * d, h, chans, img, w * d * chans);
 	
 
     return 0;
