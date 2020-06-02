@@ -219,7 +219,6 @@ cudaError_t fillImage(unsigned char* image, const int width, const int height, c
 	// Launch a kernel on the GPU with one thread for each element.
 	//dim3 blocks(32, 32);
 	int blocks = (int) ceilf(width * height * depth / 512.0);
-	printf("blocks %d", blocks);
 	pixelNoise <<<blocks,512>>> (dev_image, width, height, depth, channels, 10);
 	
 
